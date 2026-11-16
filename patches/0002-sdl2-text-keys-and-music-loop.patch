@@ -1,0 +1,33 @@
+--- a/xpired.c
++++ b/xpired.c
+@@ -223,7 +223,13 @@
+ 			SDL_BlitSurface(swapscreen,NULL,screen,NULL);
+ 			SDL_UpdateRect(screen,0,0,0,0);
+ 		}else
++#if SDL_MAJOR_VERSION >= 2
++			/* SDL 2 has no keysym.unicode: the typed character, as
++			 * SDL 1.2 gave it (compat/SDL/sdl12on2.h) */
++			UC=sdl12on2_char(&event->key.keysym);
++#else
+ 			UC=event->key.keysym.unicode;
++#endif
+ 		break;
+ 
+ 	case SDL_KEYUP:
+@@ -1906,9 +1912,16 @@
+ 
+   if (Sound){
+     Mix_Volume(-1,SVolume);
++#if SDL_MAJOR_VERSION >= 2
++    /* SDL2_mixer loops the module itself; MusicLoopback would call
++     * Mix_PlayMusic from inside the mixer's own callback. */
++    Mix_VolumeMusic(MVolume);
++    Mix_FadeInMusic(Music,-1,3000);
++#else
+     Mix_HookMusicFinished(&MusicLoopback);
+     Mix_VolumeMusic(MVolume);
+     Mix_FadeInMusic(Music,0,3000);
++#endif
+   }
+ 
+   Game();

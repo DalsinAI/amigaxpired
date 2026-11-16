@@ -1,0 +1,293 @@
+--- a/xpired.c
++++ b/xpired.c
+@@ -4,6 +4,10 @@
+ #include <math.h>
+ #include <time.h>
+ 
++#if defined(__amigaos__)
++#include <unistd.h>	/* chdir */
++#endif
++
+ #ifdef UNIX
+ 
+ #include"xpired_unix.h"
+@@ -38,6 +42,12 @@
+ 
+ 	char *SHARE_DIR=SHARE_PREFIX;
+ 
++#elif defined(__amigaos__)
++
++	/* AmigaOS: the game's data, its settings and its demo record all
++	 * live in the game's own drawer. */
++	char *SHARE_DIR="PROGDIR:";
++
+ #else
+ 	
+ 	char *SHARE_DIR=".";
+@@ -46,6 +56,13 @@
+ 
+ char GAME_HOME[MaxStrLenXLong];
+ 
++/* dir and name joined, with no '/' after a device or assign (PROGDIR:) */
++static char *PathJoin(char *buf,const char *dir,const char *name){
++	size_t n=strlen(dir);
++	sprintf(buf,(n&&(dir[n-1]==':'||dir[n-1]=='/'))?"%s%s":"%s/%s",dir,name);
++	return buf;
++}
++
+ 
+ Uint8	BPP=8;
+ char	FULLSCR=0;
+@@ -327,42 +344,42 @@
+ 		Spr[I].sha=NULL;
+ 	}
+ 	
+-#ifdef UNIX
++#if defined(UNIX) || defined(__amigaos__)
+ 
+   chdir(SHARE_DIR);
+ 
+ #endif
+   
+-	TitleS=IMG_Load("./img/title.jpg");
++	TitleS=IMG_Load("img/title.jpg");
+ 	stringRGBA(TitleS,399-strlen(strchr(VERSION,'.'))*8,2,strchr(VERSION,'.'),0x60,0xC0,0x60,128);
+ 	
+-	LoadSprite(&SLevel,"./img/level.bmp",0);
+-	LoadSprite(&SLives,"./img/lives.bmp",0);
+-	LoadSprite(&STime,"./img/time.bmp",0);
+-	LoadSprite(&SNumbers,"./img/numbers.bmp",0);
+-	LoadSprite(&(Spr['*']).img,"./img/start.bmp",128);
+-	LoadSprite(&(Spr['*']).sha,"./img/shade-player.bmp",0);
+-	LoadSprite(&(Spr['+']).img,"./img/exit.bmp",128);
+-	LoadSprite(&(Spr['+']).sha,"./img/exit-denied.bmp",128);
+-	LoadSprite(&(Spr['%']).img,"./img/retard.bmp",96);
+-	LoadSprite(&(Spr['#']).img,"./img/ice.bmp",128);
+-	LoadSprite(&(Spr['&']).img,"./img/flamable.bmp",150);
+-	LoadSprite(&(Spr['@']).img,"./img/hot.bmp",200);
+-	LoadSprite(&(Spr['T']).img,"./img/teleport.bmp",200);
+-
+-	LoadSprite(&(Spr['X']).img,"./img/wall.bmp",0);
+-	LoadSprite(&(Spr['X']).sha,"./img/shade-square.bmp",0);
+-	LoadSprite(&(Spr['x']).img,"./img/tinywall.bmp",0);
+-	LoadSprite(&(Spr['x']).sha,"./img/shade-square.bmp",0);
+-	LoadSprite(&(Spr['c']).img,"./img/crate.bmp",0);
+-	LoadSprite(&(Spr['c']).sha,"./img/shade-crate.bmp",0);
+-	LoadSprite(&(Spr['o']).img,"./img/barel.bmp",0);
+-	LoadSprite(&(Spr['o']).sha,"./img/shade-round.bmp",0);
+-	LoadSprite(&(Spr['O']).img,"./img/explosive.bmp",0);
+-	LoadSprite(&(Spr['O']).sha,"./img/shade-round.bmp",0);
++	LoadSprite(&SLevel,"img/level.bmp",0);
++	LoadSprite(&SLives,"img/lives.bmp",0);
++	LoadSprite(&STime,"img/time.bmp",0);
++	LoadSprite(&SNumbers,"img/numbers.bmp",0);
++	LoadSprite(&(Spr['*']).img,"img/start.bmp",128);
++	LoadSprite(&(Spr['*']).sha,"img/shade-player.bmp",0);
++	LoadSprite(&(Spr['+']).img,"img/exit.bmp",128);
++	LoadSprite(&(Spr['+']).sha,"img/exit-denied.bmp",128);
++	LoadSprite(&(Spr['%']).img,"img/retard.bmp",96);
++	LoadSprite(&(Spr['#']).img,"img/ice.bmp",128);
++	LoadSprite(&(Spr['&']).img,"img/flamable.bmp",150);
++	LoadSprite(&(Spr['@']).img,"img/hot.bmp",200);
++	LoadSprite(&(Spr['T']).img,"img/teleport.bmp",200);
++
++	LoadSprite(&(Spr['X']).img,"img/wall.bmp",0);
++	LoadSprite(&(Spr['X']).sha,"img/shade-square.bmp",0);
++	LoadSprite(&(Spr['x']).img,"img/tinywall.bmp",0);
++	LoadSprite(&(Spr['x']).sha,"img/shade-square.bmp",0);
++	LoadSprite(&(Spr['c']).img,"img/crate.bmp",0);
++	LoadSprite(&(Spr['c']).sha,"img/shade-crate.bmp",0);
++	LoadSprite(&(Spr['o']).img,"img/barel.bmp",0);
++	LoadSprite(&(Spr['o']).sha,"img/shade-round.bmp",0);
++	LoadSprite(&(Spr['O']).img,"img/explosive.bmp",0);
++	LoadSprite(&(Spr['O']).sha,"img/shade-round.bmp",0);
+ 
+-	LoadSprite(&PlayerV,"./img/player-v-legs.bmp",0);
+-	LoadSprite(&PlayerH,"./img/player-h-legs.bmp",0);
++	LoadSprite(&PlayerV,"img/player-v-legs.bmp",0);
++	LoadSprite(&PlayerH,"img/player-h-legs.bmp",0);
+ 	for (I=0;I<4;I++)
+ 		for (J=0;J<20;J++){
+ 			Player[0][I][J]=SDL_CreateRGBSurface(SDL_SRCALPHA,20,20,BPP,screen->format->Rmask,screen->format->Gmask,screen->format->Bmask,screen->format->Amask);
+@@ -393,8 +410,8 @@
+ 	SDL_FreeSurface(PlayerV);
+ 	SDL_FreeSurface(PlayerH);
+ 
+-	LoadSprite(&PlayerV,"./img/player-v-body.bmp",0);
+-	LoadSprite(&PlayerH,"./img/player-h-body.bmp",0);
++	LoadSprite(&PlayerV,"img/player-v-body.bmp",0);
++	LoadSprite(&PlayerH,"img/player-h-body.bmp",0);
+ 	for (I=0;I<4;I++)
+ 		for (J=0;J<20;J++){
+ 			Player[1][I][J]=SDL_CreateRGBSurface(SDL_SRCALPHA,20,20,BPP,screen->format->Rmask,screen->format->Gmask,screen->format->Bmask,screen->format->Amask);
+@@ -425,8 +442,8 @@
+ 	SDL_FreeSurface(PlayerV);
+ 	SDL_FreeSurface(PlayerH);
+ 
+-	LoadSprite(&PlayerV,"./img/player-v-push.bmp",0);
+-	LoadSprite(&PlayerH,"./img/player-h-push.bmp",0);
++	LoadSprite(&PlayerV,"img/player-v-push.bmp",0);
++	LoadSprite(&PlayerH,"img/player-h-push.bmp",0);
+ 	for (I=0;I<4;I++)
+ 		for (J=0;J<20;J++){
+ 			Player[2][I][J]=SDL_CreateRGBSurface(SDL_SRCALPHA,20,20,BPP,screen->format->Rmask,screen->format->Gmask,screen->format->Bmask,screen->format->Amask);
+@@ -458,60 +475,60 @@
+ 	SDL_FreeSurface(PlayerH);
+ 
+ 
+-	LoadSprite(&(Spr[1]).img,"./img/expl3.bmp",0);
++	LoadSprite(&(Spr[1]).img,"img/expl3.bmp",0);
+ 	Spr[1].sha=NULL;
+-	LoadSprite(&(Spr[2]).img,"./img/expl2.bmp",0);
++	LoadSprite(&(Spr[2]).img,"img/expl2.bmp",0);
+ 	Spr[2].sha=NULL;
+-	LoadSprite(&(Spr[3]).img,"./img/expl1.bmp",0);
+-	LoadSprite(&(Spr[3]).sha,"./img/shade-expl1.bmp",0);
++	LoadSprite(&(Spr[3]).img,"img/expl1.bmp",0);
++	LoadSprite(&(Spr[3]).sha,"img/shade-expl1.bmp",0);
+ 
+-	LoadSprite(&(Spr[4]).img,"./img/bo-flamable.bmp",0);
++	LoadSprite(&(Spr[4]).img,"img/bo-flamable.bmp",0);
+ 	Spr[3].sha=NULL;
+ 
+-	LoadSprite(&(Spr[5]).img,"./img/fire1.bmp",150);
++	LoadSprite(&(Spr[5]).img,"img/fire1.bmp",150);
+ 	Spr[5].sha=NULL;
+-	LoadSprite(&(Spr[6]).img,"./img/fire2.bmp",150);
++	LoadSprite(&(Spr[6]).img,"img/fire2.bmp",150);
+ 	Spr[6].sha=NULL;
+-	LoadSprite(&(Spr[7]).img,"./img/fire3.bmp",150);
++	LoadSprite(&(Spr[7]).img,"img/fire3.bmp",150);
+ 	Spr[7].sha=NULL;
+-	LoadSprite(&(Spr[8]).img,"./img/fire2.bmp",150);
++	LoadSprite(&(Spr[8]).img,"img/fire2.bmp",150);
+ 	Spr[8].sha=NULL;
+ 
+-	LoadSprite(&(Spr[9]).img,"./img/telee3.bmp",0);
+-	LoadSprite(&(Spr[9]).sha,"./img/shade-t3.bmp",0);
+-	LoadSprite(&(Spr[10]).img,"./img/telee2.bmp",0);
+-	LoadSprite(&(Spr[10]).sha,"./img/shade-t2.bmp",0);
+-	LoadSprite(&(Spr[11]).img,"./img/telee1.bmp",0);
+-	LoadSprite(&(Spr[11]).sha,"./img/shade-t1.bmp",0);
++	LoadSprite(&(Spr[9]).img,"img/telee3.bmp",0);
++	LoadSprite(&(Spr[9]).sha,"img/shade-t3.bmp",0);
++	LoadSprite(&(Spr[10]).img,"img/telee2.bmp",0);
++	LoadSprite(&(Spr[10]).sha,"img/shade-t2.bmp",0);
++	LoadSprite(&(Spr[11]).img,"img/telee1.bmp",0);
++	LoadSprite(&(Spr[11]).sha,"img/shade-t1.bmp",0);
+ 
+-	LoadSprite(&(Spr[12]).img,"./img/player-death1.bmp",0);
++	LoadSprite(&(Spr[12]).img,"img/player-death1.bmp",0);
+ 	Spr[12].sha=NULL;
+-	LoadSprite(&(Spr[13]).img,"./img/player-death2.bmp",0);
++	LoadSprite(&(Spr[13]).img,"img/player-death2.bmp",0);
+ 	Spr[13].sha=NULL;
+-	LoadSprite(&(Spr[14]).img,"./img/player-death3.bmp",0);
++	LoadSprite(&(Spr[14]).img,"img/player-death3.bmp",0);
+ 	Spr[14].sha=NULL;
+-	LoadSprite(&(Spr[15]).img,"./img/player-death4.bmp",0);
++	LoadSprite(&(Spr[15]).img,"img/player-death4.bmp",0);
+ 	Spr[15].sha=NULL;
+ 	
+-	LoadSprite(&(Spr['B']).img,"./img/bem1.bmp",0);
+-	LoadSprite(&(Spr['B']).sha,"./img/shade-bem1.bmp",0);
+-	LoadSprite(&(Spr['C']).img,"./img/bem2.bmp",0);
+-	LoadSprite(&(Spr['C']).sha,"./img/shade-bem2.bmp",0);
+-	LoadSprite(&(Spr['D']).img,"./img/bem3.bmp",0);
+-	LoadSprite(&(Spr['D']).sha,"./img/shade-bem3.bmp",0);
+-	LoadSprite(&(Spr['E']).img,"./img/bem4.bmp",0);
+-	LoadSprite(&(Spr['E']).sha,"./img/shade-bem4.bmp",0);
++	LoadSprite(&(Spr['B']).img,"img/bem1.bmp",0);
++	LoadSprite(&(Spr['B']).sha,"img/shade-bem1.bmp",0);
++	LoadSprite(&(Spr['C']).img,"img/bem2.bmp",0);
++	LoadSprite(&(Spr['C']).sha,"img/shade-bem2.bmp",0);
++	LoadSprite(&(Spr['D']).img,"img/bem3.bmp",0);
++	LoadSprite(&(Spr['D']).sha,"img/shade-bem3.bmp",0);
++	LoadSprite(&(Spr['E']).img,"img/bem4.bmp",0);
++	LoadSprite(&(Spr['E']).sha,"img/shade-bem4.bmp",0);
+ 
+ 
+ 
+-	Snd_Expl=Mix_LoadWAV("./snd/bombex.wav");
+-	Snd_Push=Mix_LoadWAV("./snd/slide.wav");
+-	Snd_Burn=Mix_LoadWAV("./snd/burn.wav");
+-	Snd_Fall=Mix_LoadWAV("./snd/fall.wav");
+-	Snd_Beep=Mix_LoadWAV("./snd/beep.wav");
+-	Snd_Teleport=Mix_LoadWAV("./snd/teleport.wav");
+-	Snd_GameOver=Mix_LoadWAV("./snd/gameover.wav");
+-	Music = Mix_LoadMUS("./snd/smashem.s3m");
++	Snd_Expl=Mix_LoadWAV("snd/bombex.wav");
++	Snd_Push=Mix_LoadWAV("snd/slide.wav");
++	Snd_Burn=Mix_LoadWAV("snd/burn.wav");
++	Snd_Fall=Mix_LoadWAV("snd/fall.wav");
++	Snd_Beep=Mix_LoadWAV("snd/beep.wav");
++	Snd_Teleport=Mix_LoadWAV("snd/teleport.wav");
++	Snd_GameOver=Mix_LoadWAV("snd/gameover.wav");
++	Music = Mix_LoadMUS("snd/smashem.s3m");
+ }
+ 
+ 
+@@ -687,7 +704,7 @@
+ 				if (!strncmp(S,"background=",5)){
+ 					for (J=11;J<=strlen(S);J++)
+ 						T[J-11]=S[J];
+-					Lvl[L].Bg=SDL_DisplayFormat(IMG_Load(T));
++					Lvl[L].Bg=SDL_DisplayFormat(IMG_Load(strncmp(T,"./",2)?T:T+2));
+ 				}
+ 				else
+ 				if ((I<20)&&(strlen(S)>=20*7)&&(S[0]==',')){
+@@ -1774,11 +1791,11 @@
+ 
+ #else
+ 
+-  strcpy(GAME_HOME,".");
++  strcpy(GAME_HOME,SHARE_DIR);
+ 
+ #endif
+ 
+-  sprintf(LevelF,"%s/xpired.lvl",SHARE_DIR);
++  PathJoin(LevelF,SHARE_DIR,"xpired.lvl");
+ 
+ // init demo record
+   Rec[0].Tick=0;
+@@ -1786,18 +1803,18 @@
+   Rec[1].Quit=2;
+ 
+ // load demo
+-  sprintf(buf,"%s/xpired.dmo",GAME_HOME);
++  PathJoin(buf,GAME_HOME,"xpired.dmo");
+ 
+   if(!LoadDemo(buf)){
+-    sprintf(buf,"%s/xpired.dmo",SHARE_DIR);
++    PathJoin(buf,SHARE_DIR,"xpired.dmo");
+     LoadDemo(buf);
+   }
+ 
+ // load config
+-  sprintf(ConfFName,"%s/xpired.cfg",GAME_HOME);
++  PathJoin(ConfFName,GAME_HOME,"xpired.cfg");
+   if(!LoadConfig(ConfFName))
+     {
+-      sprintf(buf,"%s/xpired.cfg",SHARE_DIR);
++      PathJoin(buf,SHARE_DIR,"xpired.cfg");
+       LoadConfig(buf);
+ #ifdef UNIX
+       if(mkdir(GAME_HOME,0750))
+@@ -1858,7 +1875,7 @@
+ 
+   //	fprintf(stdout,"SDL awaken!\n");
+ 
+-  sprintf(buf,"%s/img/icon.bmp",SHARE_DIR);
++  PathJoin(buf,SHARE_DIR,"img/icon.bmp");
+   SDL_WM_SetIcon(SDL_LoadBMP(buf), NULL);
+ 
+ 
+@@ -1897,7 +1914,7 @@
+   Game();
+ 
+   SaveConfig(ConfFName);
+-  sprintf(buf,"%s/xpired.dmo",GAME_HOME);
++  PathJoin(buf,GAME_HOME,"xpired.dmo");
+   SaveDemo(buf);
+ 
+   if (Sound){
